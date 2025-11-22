@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Demo Logs</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Application Logs (AWS RDS)</h1>
+    <div id="status">Loading...</div>
+    <table id="logs-table" style="display:none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody id="logs-body">
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchLogs() {
+            const statusDiv = document.getElementById('status');
+            const table = document.getElementById('logs-table');
+            const tbody = document.getElementById('logs-body');
+
+            try {
+                const response = await fetch('/api/logs');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                statusDiv.style.display = 'none';
+                table.style.display = 'table';
+
+                tbody.innerHTML = '';
+                data.forEach(log => {
+                    const row = document.createElement('tr');
+                    // Adjust fields based on actual DB schema. Assuming id and created_at based on app.py
+                    // app.py inserts: INSERT INTO logs (created_at) VALUES (%s)
+                    // We don't know the full schema, but let's assume standard ID/created_at or just dump what we get.
+                    // app.py select: SELECT * FROM logs
+
+                    // Let's dynamically create cells for whatever keys are in the first object
+                    // Or just stick to knowns if we want to be safe. 
+                    // Let's just show JSON stringified if we are unsure, or try to be smart.
+                    // The user said "table name logs", app.py inserts "created_at".
+                    // Let's assume there's an ID too or just show created_at.
+
+                    const idCell = document.createElement('td');
+                    idCell.textContent = log.id || '-';
+                    const dateCell = document.createElement('td');
+                    dateCell.textContent = log.created_at || JSON.stringify(log);
+
+                    row.appendChild(idCell);
+                    row.appendChild(dateCell);
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                statusDiv.textContent = `Error fetching logs: ${e.message}`;
+                statusDiv.className = 'error';
+            }
+        }
+
+        fetchLogs();
+    </script>
+</body>
+
+</html>
